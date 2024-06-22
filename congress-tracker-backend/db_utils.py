@@ -2,13 +2,7 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 
-# Use a service account.
-import sys
-
-sys.path.append("../")
-
-print(sys.path)
-cred = credentials.Certificate("billtrack-a2369-72eca0fdbb6d.json")
+cred = credentials.Certificate("../billtrack-a2369-72eca0fdbb6d.json")
 
 app = firebase_admin.initialize_app(cred)
 

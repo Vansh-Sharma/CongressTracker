@@ -18,11 +18,11 @@ sys.path.append("../")
 from SECRET import OPENAI_API_KEY
 
 
-cred = credentials.Certificate('billtrack-a2369-72eca0fdbb6d.json')
+# cred = credentials.Certificate('billtrack-a2369-72eca0fdbb6d.json')
 
-app = firebase_admin.initialize_app(cred)
+# app = firebase_admin.initialize_app(cred)
 
-db = firestore.client()
+# db = firestore.client()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
