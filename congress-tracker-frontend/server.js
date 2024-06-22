@@ -1,15 +1,17 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
+const cors = require('cors');
 
 const app = express();
 const port = 3000;
 
+app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/bills', async (req, res) => {
     try {
-        const response = await axios.get('https://www.govtrack.us/api/v2/bill?congress=118&sort=-introduced_date');
+        const response = await axios.get('http://localhost:5001/api/bills', { params: req.query });
         res.json(response.data);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch data' });

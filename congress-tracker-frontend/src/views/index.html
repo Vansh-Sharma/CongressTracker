@@ -10,6 +10,10 @@
 <body>
     <div class="container">
         <h1>Congress Tracker</h1>
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Search for bills..." />
+            <button id="search-button">Search</button>
+        </div>
         <div id="bills"></div>
         <div id="chatbox" class="chatbox">
             <input type="text" id="chat-input" placeholder="Ask a question..." />
@@ -17,38 +21,49 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('Fetching bills from the backend...');
-            const response = await fetch('http://localhost:5001/api/bills');  // Updated to port 5001
-            console.log('Received response from the backend.');
-            const data = await response.json();
-            const billsContainer = document.getElementById('bills');
+            const fetchBills = async (searchTerm = '') => {
+                console.log('Fetching bills from the backend...');
+                const response = await fetch(`http://localhost:5001/api/bills?search=${searchTerm}`);  // Updated to port 5001
+                console.log('Received response from the backend.');
+                const data = await response.json();
+                const billsContainer = document.getElementById('bills');
+                billsContainer.innerHTML = '';
 
-            if (data && data.length > 0) {
-                data.forEach(bill => {
-                    const billElement = document.createElement('div');
-                    billElement.className = 'bill-element';
-                    billElement.innerHTML = `
-                        <h2 class="bill-title">${bill.title}</h2>
-                        <p class="bill-date">Introduced Date: ${bill.introduced_date}</p>
-                        <p class="bill-summary" style="display:none;">Summary: ${bill.summary}</p>
-                        <i class="fas fa-file-alt summary-icon" title="Show Summary"></i>
-                    `;
-                    billsContainer.appendChild(billElement);
-                });
-
-                document.querySelectorAll('.summary-icon').forEach(icon => {
-                    icon.addEventListener('click', function() {
-                        const summary = this.previousElementSibling;
-                        if (summary.style.display === 'none') {
-                            summary.style.display = 'block';
-                        } else {
-                            summary.style.display = 'none';
-                        }
+                if (data && data.length > 0) {
+                    data.forEach(bill => {
+                        const billElement = document.createElement('div');
+                        billElement.className = 'bill-element';
+                        billElement.innerHTML = `
+                            <h2 class="bill-title">${bill.title}</h2>
+                            <p class="bill-date">Introduced Date: ${bill.introduced_date}</p>
+                            <p class="bill-summary" style="display:none;">Summary: ${bill.summary}</p>
+                            <i class="fas fa-file-alt summary-icon" title="Show Summary"></i>
+                        `;
+                        billsContainer.appendChild(billElement);
                     });
-                });
-            } else {
-                billsContainer.innerHTML = '<p>No bills introduced recently.</p>';
-            }
+
+                    document.querySelectorAll('.summary-icon').forEach(icon => {
+                        icon.addEventListener('click', function() {
+                            const summary = this.previousElementSibling;
+                            if (summary.style.display === 'none') {
+                                summary.style.display = 'block';
+                            } else {
+                                summary.style.display = 'none';
+                            }
+                        });
+                    });
+                } else {
+                    billsContainer.innerHTML = '<p>No bills introduced recently.</p>';
+                }
+            };
+
+            // Initial fetch without search term
+            fetchBills();
+
+            document.getElementById('search-button').addEventListener('click', () => {
+                const searchTerm = document.getElementById('search-input').value;
+                fetchBills(searchTerm);
+            });
         });
 
         document.addEventListener('mouseup', () => {
