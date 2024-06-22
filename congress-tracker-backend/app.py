@@ -200,6 +200,9 @@
 # if __name__ == '__main__':
 #     app.run(debug=True)
 #     #print(get_bills_introduced_last_year())
+import sys
+
+sys.path.append('../')
 
 
 from flask import Flask, jsonify, request
@@ -210,11 +213,12 @@ from PyPDF2 import PdfReader
 import os
 from flask_cors import CORS
 
+from SECRET import OPENAI_API_KEY
+
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
 # Replace 'YOUR_OPENAI_API_KEY' with your actual OpenAI API key
-OPENAI_API_KEY = 'sk-proj-tBbHRorynUbGV9FtebQhT3BlbkFJVrZzpw6auk20631KEVtn'
 openai.api_key = OPENAI_API_KEY
 
 def get_bills_introduced_last_year():
