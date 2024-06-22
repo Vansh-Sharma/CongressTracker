@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Congress Tracker</title>
+    <link href="/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>Congress Tracker</h1>
+        <div id="bills"></div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Fetching bills from the backend...');
+            const response = await fetch('http://localhost:5001/api/bills');  // Updated to port 5001
+            console.log('Received response from the backend.');
+            const data = await response.json();
+            const billsContainer = document.getElementById('bills');
+
+            if (data && data.length > 0) {
+                data.forEach(bill => {
+                    const billElement = document.createElement('div');
+                    billElement.className = 'bill-element';
+                    billElement.innerHTML = `
+                        <h2 class="bill-title">${bill.title}</h2>
+                        <p class="bill-date">Introduced Date: ${bill.introduced_date}</p>
+                        <p class="bill-summary">Summary: ${bill.summary}</p>
+                    `;
+                    billsContainer.appendChild(billElement);
+                });
+            } else {
+                billsContainer.innerHTML = '<p>No bills introduced recently.</p>';
+            }
+        });
+    </script>
+</body>
+</html>
