@@ -6,6 +6,9 @@ from PyPDF2 import PdfReader
 import os
 import re
 from flask_cors import CORS
+import sys
+
+sys.path.append("../")
 
 from SECRET import OPENAI_API_KEY
 
@@ -27,19 +30,14 @@ def get_bills_introduced_last_year():
     if response.status_code == 200:
         data = response.json()
         bills = data.get('objects', [])
-        
         bill_list = []
+        print("trust",  bills[0].keys())
         if bills:
-            print(f"Bills introduced from {last_str} to {today_str}:")
             for bill in bills:
                 title = bill['title']
                 introduced_date = bill['introduced_date']
-                print(f"Title: {title}")
-                print(f"Introduced Date: {introduced_date}")
                 
                 summary = get_bill_summary(bill)
-                print(f"Summary: {summary}")
-                print('-' * 40)
                 bill_list.append({
                     'title': title, 
                     'introduced_date': introduced_date, 
@@ -55,6 +53,7 @@ def get_bills_introduced_last_year():
 
 def get_bill_summary(bill):
     text_info = bill.get('text_info', {})
+    title = bill.get("title", {})
     if not text_info:
         print("no text available")
         return "No text as of now. \n Bills are generally sent to the Library of Congress from GPO, the Government Publishing Office, a day or two after they are introduced on the floor of the House or Senate. Delays can occur when there are a large number of bills to prepare or when a very large bill has to be printed."
@@ -62,7 +61,7 @@ def get_bill_summary(bill):
     gpo_pdf_url = text_info.get('gpo_pdf_url', '')
     if not gpo_pdf_url:
         print("No bill available")
-        return "No bill text URL available."
+        return "No bill text URL available."    
 
     summary = summarize_text(gpo_pdf_url)
     return summary
@@ -96,6 +95,10 @@ def summarize_text(gpo_pdf_url):
     except Exception as e:
         os.remove(pdf_path)
         return f"Failed to summarize text: {str(e)}"
+
+def save_bill(bill_id, person_created, translated_document, left_translated=None, right_translated=None):
+    doc_ref = db.collection("src").document(bill_id)
+    doc_ref.set({"Person": person_created, "document": translated_document, "left": left_translated, "right": right_translated})
 
 @app.route('/api/bills', methods=['GET'])
 def bills():
