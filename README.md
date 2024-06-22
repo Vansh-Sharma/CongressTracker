@@ -1,4 +1,4 @@
-# congress_tracker_temp
+# CongressTracker
 
 ## Backend
 
