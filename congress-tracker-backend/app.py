@@ -14,7 +14,7 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
 # Replace 'YOUR_OPENAI_API_KEY' with your actual OpenAI API key
-OPENAI_API_KEY="sk-proj-tBbHRorynUbGV9FtebQhT3BlbkFJVrZzpw6auk20631KEVtn"
+OPENAI_API_KEY = 'sk-proj-tBbHRorynUbGV9FtebQhT3BlbkFJVrZzpw6auk20631KEVtn'
 openai.api_key = OPENAI_API_KEY
 
 def get_bills_introduced_last_year():
@@ -30,21 +30,22 @@ def get_bills_introduced_last_year():
         data = response.json()
         bills = data.get('objects', [])
         bill_list = []
-        print("trust",  bills[0].keys())
+        
         if bills:
             for bill in bills:
                 title = bill['title']
                 introduced_date = bill['introduced_date']
+                sponsor = bill['sponsor']['name'] if 'sponsor' in bill else 'Unknown Sponsor'
                 
                 summary = get_bill_summary(bill)
-                print(f"Summary: {summary}")
                 if summary == '': 
                     continue
-                print('-' * 40)
+
                 bill_list.append({
                     'title': title, 
                     'introduced_date': introduced_date, 
                     'summary': summary,
+                    'sponsor': sponsor
                 })
             return bill_list
         else:
@@ -56,7 +57,6 @@ def get_bills_introduced_last_year():
 
 def get_bill_summary(bill):
     text_info = bill.get('text_info', {})
-    title = bill.get("title", {})
     if not text_info:
         print("no text available")
         return ""
@@ -84,25 +84,10 @@ def summarize_text(gpo_pdf_url):
     print("Bill Text:", text)
 
     try:
-        # response = openai.chat.completions.create(       
-        #     messages=[
-        #         {
-        #             "role": "user",
-        #             "content": f"Summarize the following information: {text}",
-        #         }
-        #     ],
-        #     model="gpt-4",
-        # )
-        # os.remove(pdf_path)
-        # return response.choices[0].message.content
-        return "Temp Summary"
+        return "Temp Summary"  # Placeholder for the actual summary
     except Exception as e:
         os.remove(pdf_path)
         return f"Failed to summarize text: {str(e)}"
-
-def save_bill(bill_id, person_created, translated_document, left_translated=None, right_translated=None):
-    doc_ref = db.collection("src").document(bill_id)
-    doc_ref.set({"Person": person_created, "document": translated_document, "left": left_translated, "right": right_translated})
 
 @app.route('/api/bills', methods=['GET'])
 def bills():
@@ -123,6 +108,46 @@ def bills():
     print("sending info to frontend")
     return jsonify(summarized_bills)
 
+@app.route('/api/person_bills', methods=['GET'])
+def person_bills():
+    print("received request")
+    summarized_bills = get_bills_introduced_last_year()
+    
+    # Get the search term query parameter
+    search_term = request.args.get('search')
+    
+    # Filter bills based on the sponsor's name
+    if search_term:
+        regex = re.compile(search_term, re.IGNORECASE)
+        summarized_bills = [
+            bill for bill in summarized_bills
+            if regex.search(bill['sponsor'])
+        ]
+    
+    print("sending info to frontend")
+    return jsonify(summarized_bills)
+
+@app.route('/api/summarize_person_bills', methods=['POST'])
+def summarize_person_bills():
+    data = request.json
+    search_term = data.get('search')
+    
+    summarized_bills = get_bills_introduced_last_year()
+    
+    if search_term:
+        regex = re.compile(search_term, re.IGNORECASE)
+        person_bills = [
+            bill for bill in summarized_bills
+            if regex.search(bill['sponsor'])
+        ]
+
+        # Instead of aggregating summaries, return "Hello, World!" for testing
+        summary = "Hello, World!"
+        
+        return jsonify({"summary": summary})
+    
+    return jsonify({"summary": "No search term provided"}), 400
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.json
@@ -131,7 +156,7 @@ def chat():
 
     # Handle the incoming data here. For example, you can call OpenAI API
     try:
-        response = openai.chat.completions.create(       
+        response = openai.ChatCompletion.create(       
             messages=[
                 {
                     "role": "user",

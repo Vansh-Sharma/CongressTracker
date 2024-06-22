@@ -11,8 +11,13 @@
     <div class="container">
         <h1>Congress Tracker</h1>
         <div class="search-container">
-            <input type="text" id="search-input" placeholder="Search for bills..." />
-            <button id="search-button">Search</button>
+            <input type="text" id="bill-search-input" placeholder="Search for bills..." />
+            <button id="bill-search-button">Search Bills</button>
+        </div>
+        <div class="search-container">
+            <input type="text" id="person-search-input" placeholder="Search for person's bills..." />
+            <button id="person-search-button">Search Person's Bills</button>
+            <button id="summarize-button" style="display: none;">Summarize Person's Bills</button>
         </div>
         <div id="bills"></div>
         <div id="chatbox" class="chatbox">
@@ -27,9 +32,12 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            const fetchBills = async (searchTerm = '') => {
-                console.log('Fetching bills from the backend...');
-                const response = await fetch(`http://localhost:5001/api/bills?search=${searchTerm}`);  // Updated to port 5001
+            const fetchBills = async (searchTerm = '', searchType = 'bill') => {
+                console.log(`Fetching ${searchType} data from the backend...`);
+                const url = searchType === 'bill' 
+                    ? `http://localhost:5001/api/bills?search=${searchTerm}` 
+                    : `http://localhost:5001/api/person_bills?search=${searchTerm}`;
+                const response = await fetch(url);
                 console.log('Received response from the backend.');
                 const data = await response.json();
                 const billsContainer = document.getElementById('bills');
@@ -42,6 +50,7 @@
                         billElement.innerHTML = `
                             <h2 class="bill-title">${bill.title}</h2>
                             <p class="bill-date">Introduced Date: ${bill.introduced_date}</p>
+                            <p class="bill-sponsor">Sponsor: ${bill.sponsor}</p>
                         `;
                         if (bill.summary.trim() !== '') {
                             const summaryElement = document.createElement('p');
@@ -66,16 +75,49 @@
                         billsContainer.appendChild(billElement);
                     });
                 } else {
-                    billsContainer.innerHTML = '<p>No bills introduced recently.</p>';
+                    billsContainer.innerHTML = '<p>No bills found.</p>';
                 }
             };
 
             // Initial fetch without search term
             fetchBills();
 
-            document.getElementById('search-button').addEventListener('click', () => {
-                const searchTerm = document.getElementById('search-input').value;
-                fetchBills(searchTerm);
+            document.getElementById('bill-search-button').addEventListener('click', () => {
+                const searchTerm = document.getElementById('bill-search-input').value;
+                fetchBills(searchTerm, 'bill');
+            });
+
+            document.getElementById('person-search-button').addEventListener('click', () => {
+                const searchTerm = document.getElementById('person-search-input').value;
+                fetchBills(searchTerm, 'person');
+
+                // Show the summarize button
+                const summarizeButton = document.getElementById('summarize-button');
+                summarizeButton.style.display = 'inline-block';
+            });
+
+            document.getElementById('summarize-button').addEventListener('click', async () => {
+                const searchTerm = document.getElementById('person-search-input').value;
+                const response = await fetch('http://localhost:5001/api/summarize_person_bills', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ search: searchTerm }),
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Summary of person\'s bills:', result);
+
+                    // Show the summary in a modal or another suitable way
+                    const modal = document.getElementById('response-modal');
+                    const responseText = document.getElementById('response-text');
+                    responseText.textContent = result.summary || 'No summary available';
+                    modal.style.display = 'block';
+                } else {
+                    console.error('Error summarizing person\'s bills');
+                }
             });
         });
 
