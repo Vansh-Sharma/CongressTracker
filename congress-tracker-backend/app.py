@@ -1,3 +1,7 @@
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import firestore
+
 from flask import Flask, jsonify, request
 import requests
 import datetime
@@ -7,8 +11,18 @@ import os
 import re
 from flask_cors import CORS
 import sys
+import db_utils
 
 sys.path.append("../")
+
+from SECRET import OPENAI_API_KEY
+
+
+# cred = credentials.Certificate('billtrack-a2369-72eca0fdbb6d.json')
+
+# app = firebase_admin.initialize_app(cred)
+
+# db = firestore.client()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -49,21 +63,27 @@ def get_bills_introduced_last_year():
                 })
             return bill_list
         else:
-            print(f"No bills introduced from {last_str} to {today_str}.")
             return []
     else:
-        print(f"Failed to retrieve data: {response.status_code}")
         return []
 
 def get_bill_summary(bill):
     text_info = bill.get('text_info', {})
+    title = bill.get("title", {})
+    title_name = title.split(":")[0]
+
+    if db_utils.document_exists(title_name):
+        return db_utils.return_bill_content(bill)
+    else:
+        db_utils.insert_bill(bill, content="put ChatGPT content here")
+
+    return "not cached"
+    
     if not text_info:
-        print("no text available")
-        return ""
+        return "No text as of now. \n Bills are generally sent to the Library of Congress from GPO, the Government Publishing Office, a day or two after they are introduced on the floor of the House or Senate. Delays can occur when there are a large number of bills to prepare or when a very large bill has to be printed."
 
     gpo_pdf_url = text_info.get('gpo_pdf_url', '')
     if not gpo_pdf_url:
-        print("No bill available")
         return "No bill text URL available."    
 
     summary = summarize_text(gpo_pdf_url)
@@ -84,14 +104,24 @@ def summarize_text(gpo_pdf_url):
     print("Bill Text:", text)
 
     try:
-        return "Temp Summary"  # Placeholder for the actual summary
+        # response = openai.chat.completions.create(       
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": f"Summarize the following information: {text}",
+        #         }
+        #     ],
+        #     model="gpt-4",
+        # )
+        # os.remove(pdf_path)
+        # return response.choices[0].message.content
+        return "Temp Summary"
     except Exception as e:
         os.remove(pdf_path)
         return f"Failed to summarize text: {str(e)}"
 
 @app.route('/api/bills', methods=['GET'])
 def bills():
-    print("received request")
     summarized_bills = get_bills_introduced_last_year()
     
     # Get the search term query parameter
@@ -104,8 +134,7 @@ def bills():
             bill for bill in summarized_bills
             if regex.search(bill['title']) or regex.search(bill['summary']) or regex.search(bill['introduced_date'])
         ]
-    
-    print("sending info to frontend")
+
     return jsonify(summarized_bills)
 
 @app.route('/api/person_bills', methods=['GET'])
