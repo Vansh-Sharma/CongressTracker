@@ -19,6 +19,12 @@
             <input type="text" id="chat-input" placeholder="Ask a question..." />
         </div>
     </div>
+    <div id="response-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <p id="response-text"></p>
+        </div>
+    </div>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const fetchBills = async (searchTerm = '') => {
@@ -36,21 +42,28 @@
                         billElement.innerHTML = `
                             <h2 class="bill-title">${bill.title}</h2>
                             <p class="bill-date">Introduced Date: ${bill.introduced_date}</p>
-                            <p class="bill-summary" style="display:none;">Summary: ${bill.summary}</p>
-                            <i class="fas fa-file-alt summary-icon" title="Show Summary"></i>
                         `;
-                        billsContainer.appendChild(billElement);
-                    });
+                        if (bill.summary.trim() !== '') {
+                            const summaryElement = document.createElement('p');
+                            summaryElement.className = 'bill-summary';
+                            summaryElement.style.display = 'none';
+                            summaryElement.textContent = `Summary: ${bill.summary}`;
+                            billElement.appendChild(summaryElement);
 
-                    document.querySelectorAll('.summary-icon').forEach(icon => {
-                        icon.addEventListener('click', function() {
-                            const summary = this.previousElementSibling;
-                            if (summary.style.display === 'none') {
-                                summary.style.display = 'block';
-                            } else {
-                                summary.style.display = 'none';
-                            }
-                        });
+                            const icon = document.createElement('i');
+                            icon.className = 'fas fa-file-alt summary-icon';
+                            icon.title = 'Show Summary';
+                            icon.addEventListener('click', function() {
+                                const summary = this.previousElementSibling;
+                                if (summary.style.display === 'none') {
+                                    summary.style.display = 'block';
+                                } else {
+                                    summary.style.display = 'none';
+                                }
+                            });
+                            billElement.appendChild(icon);
+                        }
+                        billsContainer.appendChild(billElement);
                     });
                 } else {
                     billsContainer.innerHTML = '<p>No bills introduced recently.</p>';
@@ -74,9 +87,62 @@
                 chatbox.style.top = `${rect.top + window.scrollY + rect.height}px`;
                 chatbox.style.left = `${rect.left + window.scrollX}px`;
                 chatbox.style.display = 'block';
-                document.getElementById('chat-input').focus();
+                const chatInput = document.getElementById('chat-input');
+                chatInput.focus();
+                chatInput.dataset.selectedText = selectedText; // Store the selected text in a data attribute
             } else {
                 chatbox.style.display = 'none';
+            }
+        });
+
+        document.getElementById('chat-input').addEventListener('keypress', async (event) => {
+            if (event.key === 'Enter') {
+                const chatInput = document.getElementById('chat-input');
+                const selectedText = chatInput.dataset.selectedText;
+                const userInput = chatInput.value;
+
+                if (selectedText && userInput) {
+                    const response = await fetch('http://localhost:5001/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            selectedText: selectedText,
+                            userInput: userInput
+                        }),
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log('Response from server:', result);
+
+                        // Show the response in a modal
+                        const modal = document.getElementById('response-modal');
+                        const responseText = document.getElementById('response-text');
+                        responseText.textContent = result.response || result.error || 'No response from server';
+                        modal.style.display = 'block';
+
+                        // Clear the input field
+                        chatInput.value = '';
+                        chatbox.style.display = 'none';
+                    } else {
+                        console.error('Error sending data to the server');
+                    }
+                }
+            }
+        });
+
+        // Modal close button functionality
+        document.querySelector('.close-button').addEventListener('click', () => {
+            document.getElementById('response-modal').style.display = 'none';
+        });
+
+        // Close modal when clicking outside of it
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('response-modal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
             }
         });
     </script>

@@ -10,12 +10,11 @@ import sys
 
 sys.path.append("../")
 
-from SECRET import OPENAI_API_KEY
-
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
 # Replace 'YOUR_OPENAI_API_KEY' with your actual OpenAI API key
+OPENAI_API_KEY="sk-proj-tBbHRorynUbGV9FtebQhT3BlbkFJVrZzpw6auk20631KEVtn"
 openai.api_key = OPENAI_API_KEY
 
 def get_bills_introduced_last_year():
@@ -38,6 +37,10 @@ def get_bills_introduced_last_year():
                 introduced_date = bill['introduced_date']
                 
                 summary = get_bill_summary(bill)
+                print(f"Summary: {summary}")
+                if summary == '': 
+                    continue
+                print('-' * 40)
                 bill_list.append({
                     'title': title, 
                     'introduced_date': introduced_date, 
@@ -56,7 +59,7 @@ def get_bill_summary(bill):
     title = bill.get("title", {})
     if not text_info:
         print("no text available")
-        return "No text as of now. \n Bills are generally sent to the Library of Congress from GPO, the Government Publishing Office, a day or two after they are introduced on the floor of the House or Senate. Delays can occur when there are a large number of bills to prepare or when a very large bill has to be printed."
+        return ""
 
     gpo_pdf_url = text_info.get('gpo_pdf_url', '')
     if not gpo_pdf_url:
@@ -81,17 +84,18 @@ def summarize_text(gpo_pdf_url):
     print("Bill Text:", text)
 
     try:
-        response = openai.ChatCompletion.create(       
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"Summarize the following information: {text}",
-                }
-            ],
-            model="gpt-4",
-        )
-        os.remove(pdf_path)
-        return response.choices[0].message.content
+        # response = openai.chat.completions.create(       
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": f"Summarize the following information: {text}",
+        #         }
+        #     ],
+        #     model="gpt-4",
+        # )
+        # os.remove(pdf_path)
+        # return response.choices[0].message.content
+        return "Temp Summary"
     except Exception as e:
         os.remove(pdf_path)
         return f"Failed to summarize text: {str(e)}"
@@ -118,6 +122,29 @@ def bills():
     
     print("sending info to frontend")
     return jsonify(summarized_bills)
+
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    data = request.json
+    selected_text = data.get('selectedText')
+    user_input = data.get('userInput')
+
+    # Handle the incoming data here. For example, you can call OpenAI API
+    try:
+        response = openai.chat.completions.create(       
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"The following text is selected: {selected_text}. Please answer this question: {user_input}",
+                }
+            ],
+            model="gpt-4",
+        )
+        answer = response.choices[0].message.content
+        return jsonify({"response": answer})
+    except Exception as e:
+        print(str(e))
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)
