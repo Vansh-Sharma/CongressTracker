@@ -14,19 +14,20 @@ def document_exists(doc):
     doc = doc_ref.get()
     return doc.exists
 
-def insert_bill(bill, content):
+def insert_bill(bill, original, translated):
     title = bill.get("title", "").split(":")[0]
     doc_ref = db.document(title)
     doc_ref.set({
         "title": bill.get("title", ""),
         "party": bill.get("party", ""),
         "date": bill.get("introduced_date", ""),
-        "content": content
+        "translated": translated,
+        "original": original
     })
 
 def return_bill_content(bill):
     title = bill.get("title", "").split(":")[0]
     doc_ref = db.document(title)
 
-    return doc_ref.get().to_dict()["content"]
+    return (doc_ref.get().to_dict()["original"], doc_ref.get().to_dict()["translated"])
 
