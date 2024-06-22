@@ -27,6 +27,6 @@ def insert_bill(bill, content):
 def return_bill_content(bill):
     title = bill.get("title", "").split(":")[0]
     doc_ref = db.document(title)
-    return doc_ref["content"]
 
-print(document_exists("bills"))
+    return doc_ref.get().to_dict()["content"]
+
