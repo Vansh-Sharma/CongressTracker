@@ -73,11 +73,9 @@ def get_bill_summary(bill):
     title_name = title.split(":")[0]
 
     if db_utils.document_exists(title_name):
-        return db_utils.return_bill_content(bill)
+        original, translated = db_utils.return_bill_content(bill)
     else:
-        db_utils.insert_bill(bill, content="put ChatGPT content here")
-
-    return "not cached"
+        db_utils.insert_bill(bill, original="put original text content", translated="GPT content")
     
     if not text_info:
         return "No text as of now. \n Bills are generally sent to the Library of Congress from GPO, the Government Publishing Office, a day or two after they are introduced on the floor of the House or Senate. Delays can occur when there are a large number of bills to prepare or when a very large bill has to be printed."
