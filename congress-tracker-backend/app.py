@@ -15,10 +15,12 @@ import db_utils
 
 sys.path.append("../")
 
-# Uncomment these lines to initialize Firebase with credentials
-# cred = credentials.Certificate('billtrack-a2369-72eca0fdbb6d.json')
-# app = firebase_admin.initialize_app(cred)
-# db = firestore.client()
+# Initialize Firebase with credentials if not already initialized
+if not firebase_admin._apps:
+    cred = credentials.Certificate('billtrack-a2369-72eca0fdbb6d.json')
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -45,6 +47,7 @@ def get_bills_introduced_last_year():
                 print("reading bills")
                 title = bill['title']
                 introduced_date = bill['introduced_date']
+                sponsor = bill['sponsor']['name'] if 'sponsor' in bill else 'Unknown Sponsor'
                 
                 summary, pdf_text = get_bill_summary(bill)
                 if summary == '': 
@@ -54,6 +57,7 @@ def get_bills_introduced_last_year():
                     'title': title, 
                     'introduced_date': introduced_date, 
                     'summary': summary,
+                    'sponsor': sponsor,
                     'pdf_text': pdf_text
                 })
             return bill_list
@@ -96,7 +100,6 @@ def summarize_text(gpo_pdf_url):
     os.remove(pdf_path)  # Remove the PDF file after extraction
 
     try:
-        # Uncomment these lines to use OpenAI for summarization
         response = openai.chat.completions.create(
             model="gpt-4",
             messages=[
@@ -116,13 +119,11 @@ def summarize_text(gpo_pdf_url):
             ],
         )
         return response.choices[0].message.content, full_text_response.choices[0].message.content
-        #return "Temp Summary", text
     except Exception as e:
         return f"Failed to summarize text: {str(e)}", text
 
 @app.route('/api/bills', methods=['GET'])
 def bills():
-    print("here")
     summarized_bills = get_bills_introduced_last_year()
     
     search_term = request.args.get('search')
@@ -135,6 +136,58 @@ def bills():
         ]
     
     return jsonify(summarized_bills)
+
+@app.route('/api/person_bills', methods=['GET'])
+def person_bills():
+    summarized_bills = get_bills_introduced_last_year()
+    
+    search_term = request.args.get('search')
+    
+    if search_term:
+        regex = re.compile(search_term, re.IGNORECASE)
+        summarized_bills = [
+            bill for bill in summarized_bills
+            if regex.search(bill['sponsor'])
+        ]
+    
+    return jsonify(summarized_bills)
+
+@app.route('/api/summarize_person_bills', methods=['POST'])
+def summarize_person_bills():
+    data = request.json
+    search_term = data.get('search')
+    
+    summarized_bills = get_bills_introduced_last_year()
+    
+    if search_term:
+        regex = re.compile(search_term, re.IGNORECASE)
+        person_bills = [
+            bill for bill in summarized_bills
+            if regex.search(bill['sponsor'])
+        ]
+
+        # Aggregate summaries of the person's bills
+        summaries = [bill['summary'] for bill in person_bills if bill['summary']]
+        combined_summary = "\n\n".join(summaries)
+        
+        # Call OpenAI API to summarize the combined summaries
+        try:
+            response = openai.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"Summarize the following information: {combined_summary}",
+                    }
+                ],
+            )
+            summary = response.choices[0].message.content
+        except Exception as e:
+            summary = f"Failed to summarize text: {str(e)}"
+        
+        return jsonify({"summary": summary})
+    
+    return jsonify({"summary": "No search term provided"}), 400
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
