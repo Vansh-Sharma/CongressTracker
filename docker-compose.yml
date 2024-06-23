@@ -4,6 +4,8 @@ services:
     build: ./congress-tracker-backend
     ports:
       - "5001:5001"
+    volumes:
+      - ./billtrack-a2369-72eca0fdbb6d.json:/app/billtrack-a2369-72eca0fdbb6d.json:ro
   frontend:
     build: ./congress-tracker-frontend
     ports:
