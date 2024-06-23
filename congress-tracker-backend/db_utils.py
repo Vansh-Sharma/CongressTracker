@@ -28,6 +28,6 @@ def insert_bill(bill, original, translated):
 def return_bill_content(bill):
     title = bill.get("title", "").split(":")[0]
     doc_ref = db.document(title)
-    return "", ""
-    #return (doc_ref.get().to_dict()["original"], doc_ref.get().to_dict()["translated"])
+    #return "", ""
+    return (doc_ref.get().to_dict()["original"], doc_ref.get().to_dict()["translated"])
 

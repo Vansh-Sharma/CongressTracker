@@ -67,19 +67,19 @@ def get_bill_summary(bill):
     title = bill.get("title", {})
     title_name = title.split(":")[0]
 
-    # if db_utils.document_exists(title_name):
-    #     return db_utils.return_bill_content(bill)
-    # else:
-    if not text_info:
-        return "", ""
+    if db_utils.document_exists(title_name):
+        return db_utils.return_bill_content(bill)
+    else:
+        if not text_info:
+            return "", ""
 
-    gpo_pdf_url = text_info.get('gpo_pdf_url', '')
-    if not gpo_pdf_url:
-        return "", ""    
-    print("Summarizing")
-    summary, pdf_text = summarize_text(gpo_pdf_url)
-        #db_utils.insert_bill(bill, original=summary, translated=pdf_text)
-    return summary, pdf_text
+        gpo_pdf_url = text_info.get('gpo_pdf_url', '')
+        if not gpo_pdf_url:
+            return "", ""    
+        print("Summarizing")
+        summary, pdf_text = summarize_text(gpo_pdf_url)
+        db_utils.insert_bill(bill, original=summary, translated=pdf_text)
+        return summary, pdf_text
 
 def summarize_text(gpo_pdf_url):
     response = requests.get(gpo_pdf_url)
@@ -97,17 +97,26 @@ def summarize_text(gpo_pdf_url):
 
     try:
         # Uncomment these lines to use OpenAI for summarization
-        # response = openai.ChatCompletion.create(
-        #     model="gpt-4",
-        #     messages=[
-        #         {
-        #             "role": "user",
-        #             "content": f"Summarize the following information: {text}",
-        #         }
-        #     ],
-        # )
-        # return response.choices[0].message.content, text
-        return "Temp Summary", text
+        response = openai.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Summarize the following information: {text}",
+                }
+            ],
+        )
+        full_text_response = openai.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Please format this text better, getting rid of any random characters: {text}",
+                }
+            ],
+        )
+        return response.choices[0].message.content, full_text_response.choices[0].message.content
+        #return "Temp Summary", text
     except Exception as e:
         return f"Failed to summarize text: {str(e)}", text
 
@@ -134,7 +143,7 @@ def chat():
     user_input = data.get('userInput')
 
     try:
-        response = openai.ChatCompletion.create(
+        response = openai.chat.completions.create(
             model="gpt-4",
             messages=[
                 {
