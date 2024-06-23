@@ -19,7 +19,7 @@ def insert_bill(bill, original, translated):
     doc_ref = db.document(title)
     doc_ref.set({
         "title": bill.get("title", ""),
-        "party": bill.get("party", ""),
+        "party": bill.get("sponsor_role", "").get("party", ""),
         "date": bill.get("introduced_date", ""),
         "translated": translated,
         "original": original
