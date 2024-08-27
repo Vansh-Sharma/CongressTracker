@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Congress Tracker</title>
+    <title>Bill Track</title>
     <link href="/styles.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <h1>Congress Tracker</h1>
+        <h1>Bill Track</h1>
         <div class="search-container">
             <input type="text" id="bill-search-input" placeholder="Search for bills..." />
             <button id="bill-search-button">Search Bills</button>
@@ -46,14 +46,20 @@
                 if (data && data.length > 0) {
                     data.forEach(bill => {
                         const billElement = document.createElement('div');
-                        billElement.className = 'bill-element';
+                        billElement.className = 'bill-card';
                         billElement.innerHTML = `
-                            <h2 class="bill-title">${bill.title}</h2>
-                            <p class="bill-date">Introduced Date: ${bill.introduced_date}</p>
-                            <p class="bill-sponsor">Sponsor: ${bill.sponsor}</p>
-                            <p class="bill-summary">Summary: ${bill.summary}</p>
-                            <p class="bill-full-text" style="display:none;">${bill.pdf_text}</p>
-                            <button class="full-text-button">Full Text</button>
+                            <div class="card-header">
+                                <h2 class="bill-title">${bill.title}</h2>
+                            </div>
+                            <div class="card-body">
+                                <p class="bill-date">Introduced Date: ${bill.introduced_date}</p>
+                                <p class="bill-sponsor">Sponsor: ${bill.sponsor}</p>
+                                <p class="bill-summary">Summary: ${bill.summary}</p>
+                            </div>
+                            <div class="card-footer">
+                                <button class="full-text-button">Full Text</button>
+                                <p class="bill-full-text" style="display:none;">${bill.pdf_text}</p>
+                            </div>
                         `;
 
                         const fullTextButton = billElement.querySelector('.full-text-button');
@@ -62,6 +68,13 @@
                             if (fullTextElement.style.display === 'none') {
                                 fullTextElement.style.display = 'block';
                                 fullTextButton.textContent = 'Hide Full Text';
+                                fullTextElement.animate([
+                                    { opacity: 0 },
+                                    { opacity: 1 }
+                                ], {
+                                    duration: 500,
+                                    fill: 'forwards'
+                                });
                             } else {
                                 fullTextElement.style.display = 'none';
                                 fullTextButton.textContent = 'Full Text';

@@ -31,7 +31,7 @@ openai.api_key = OPENAI_API_KEY
 
 def get_bills_introduced_last_year():
     today = datetime.datetime.now()
-    last = today - datetime.timedelta(days=14)
+    last = today - datetime.timedelta(days=30)
     today_str = today.strftime('%Y-%m-%d')
     last_str = last.strftime('%Y-%m-%d')
     
